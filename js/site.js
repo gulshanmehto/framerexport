@@ -68,6 +68,14 @@
       });
       window.setTimeout(function () {
         el.style.transition = "";
+        // Framer marks these elements "will-change:transform" as a hint for
+        // its own runtime, which normally clears it back to "auto" once
+        // settled. Do the same once our one-time reveal is done, instead of
+        // leaving hundreds of elements permanently promoted to their own
+        // compositing layer for the rest of the page's life.
+        if (el.style.willChange === "transform") {
+          el.style.willChange = "auto";
+        }
       }, 700);
     }
   }
