@@ -110,12 +110,30 @@
       if (!panel) return;
       panel.setAttribute("data-site-js-managed", "true");
 
+      // The dropdown often has its own full-bleed darkened/blurred backdrop
+      // ("BG") as a sibling within the same nav — same opacity:0-by-default
+      // pattern, so it needs to be excluded from the generic reveal and
+      // toggled in lockstep with the panel instead of left invisible-but-
+      // blurring forever.
+      var backdrop = null;
+      var bgCandidates = node.querySelectorAll('[data-framer-name="BG"]');
+      bgCandidates.forEach(function (bg) {
+        var s = bg.getAttribute("style") || "";
+        if (/opacity:\s*0\b/.test(s) && /backdrop-filter/i.test(s)) {
+          backdrop = bg;
+          backdrop.setAttribute("data-site-js-managed", "true");
+        }
+      });
+
       btn.style.cursor = "pointer";
       var open = false;
       function setOpen(next) {
         open = next;
         panel.style.opacity = open ? "1" : "0";
         panel.style.pointerEvents = open ? "auto" : "none";
+        if (backdrop) {
+          backdrop.style.opacity = open ? "1" : "0";
+        }
       }
       setOpen(false);
       btn.addEventListener("click", function () {
