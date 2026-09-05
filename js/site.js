@@ -13,6 +13,23 @@
     }
   }
 
+  // ---------- 0. Generic hover feedback ----------
+  // Buttons, cards, nav links etc. all relied on Framer's JS to swap in a
+  // "hover" variant with its own (often unique, per-component) styling —
+  // none of that is real CSS :hover, so none of it does anything anymore.
+  // Reverse-engineering every individual variant isn't practical, so this
+  // gives every one of those elements (Framer marks all of them
+  // data-highlight="true") a single, consistent, subtle hover/press cue
+  // instead of leaving them dead.
+  function initHoverFeedback() {
+    var style = document.createElement("style");
+    style.textContent =
+      '[data-highlight="true"]{transition:transform .18s ease,opacity .18s ease}' +
+      '[data-highlight="true"]:hover{opacity:.85;transform:scale(1.015)}' +
+      '[data-highlight="true"]:active{transform:scale(.985);opacity:.7}';
+    document.head.appendChild(style);
+  }
+
   // ---------- 1. Scroll/entrance reveal ----------
   // Framer's export leaves entrance-hidden elements with an inline style like
   // opacity:0 (or 0.001) and, often, a translateX/Y(...) offset. We reveal
@@ -148,8 +165,50 @@
     });
   }
 
+  // ---------- 3. Ticker / marquee rows ----------
+  // Rows like "Your audience is everywhere" or the creator-avatar strip
+  // were continuously auto-scrolled by a requestAnimationFrame loop in
+  // Framer's runtime (there's no CSS animation backing them at all). We
+  // rebuild that with a plain CSS keyframe loop: duplicate each list's
+  // items once so it can loop seamlessly from translateX(0) to -50%.
+  function initTickers() {
+    var lists = document.querySelectorAll("ul");
+    var found = false;
+    lists.forEach(function (ul) {
+      if (ul.hasAttribute("data-site-js-managed")) return;
+      if (!ul.querySelector(":scope > li.ticker-item")) return;
+      found = true;
+      ul.setAttribute("data-site-js-managed", "true");
+
+      var originalChildren = Array.prototype.slice.call(ul.children);
+      originalChildren.forEach(function (li) {
+        var clone = li.cloneNode(true);
+        clone.setAttribute("aria-hidden", "true");
+        ul.appendChild(clone);
+      });
+
+      ul.style.opacity = "1";
+      ul.style.transform = "none";
+      ul.style.flexWrap = "nowrap";
+      ul.style.willChange = "auto";
+      ul.classList.add("site-js-ticker");
+    });
+
+    if (found && !document.getElementById("site-js-ticker-style")) {
+      var style = document.createElement("style");
+      style.id = "site-js-ticker-style";
+      style.textContent =
+        ".site-js-ticker{animation:site-js-ticker-scroll 22s linear infinite}" +
+        ".site-js-ticker:hover{animation-play-state:paused}" +
+        "@keyframes site-js-ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}";
+      document.head.appendChild(style);
+    }
+  }
+
   onReady(function () {
+    initHoverFeedback();
     initMenus();
+    initTickers();
     initReveal();
   });
 })();
